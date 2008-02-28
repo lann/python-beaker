@@ -303,8 +303,9 @@ class CookieSession(Session):
     def __init__(self, request, key='beaker.session.id', timeout=None,
                  cookie_expires=True, cookie_domain=None, encrypt_key=None,
                  validate_key=None, secure=False, **kwargs):
-        if not crypto_ok:
-            raise BeakerException("PyCrypto is not installed, can't use cookie-only Session.")
+        if not crypto_ok and encrypt_key:
+            raise BeakerException("pycryptopp is not installed, can't use "
+                                  "encrypted cookie-only Session.")
         
         self.request = request
         self.key = key
@@ -330,6 +331,7 @@ class CookieSession(Session):
             self.cookie = SignedCookie(validate_key, input=None)
         
         self.dict = {}
+        self.dict['_id'] = self._make_id()
         self.is_new = True
         
         # If we have a cookie, load it
@@ -344,6 +346,7 @@ class CookieSession(Session):
             self._create_cookie()
     
     created = property(lambda self: self.dict['_creation_time'])
+    id = property(lambda self: self.dict['_id'])
     
     def _encrypt_data(self):
         """Cerealize, encipher, and base64 the session dict"""
@@ -370,6 +373,12 @@ class CookieSession(Session):
             data = base64.b64decode(self.cookie[self.key].value)
             return cPickle.loads(data)
     
+    def _make_id(self):
+        return md5.new(md5.new(
+            "%f%s%f%d" % (time.time(), id({}), random.random(), os.getpid())
+            ).hexdigest()
+        ).hexdigest()
+    
     def save(self):
         "saves the data for this session to persistent storage"
         self._create_cookie()
@@ -377,6 +386,8 @@ class CookieSession(Session):
     def _create_cookie(self):
         if '_creation_time' not in self.dict:
             self.dict['_creation_time'] = time.time()
+        if '_id' not in self.dict:
+            self.dict['_id'] = self._make_id()
         self.dict['_accessed_time'] = time.time()
         val = self._encrypt_data()
         if len(val) > 4064:
@@ -403,6 +414,14 @@ class CookieSession(Session):
                 expires.strftime("%a, %d-%b-%Y %H:%M:%S GMT" )
         self.request['cookie_out'] = self.cookie[self.key].output(header='')
         self.request['set_cookie'] = True
+    
+    def delete(self):
+        # Clear out the cookie contents, best we can do
+        self.dict = {}
+        self._create_cookie()
+    
+    # Alias invalidate to delete
+    invalidate = delete
 
 
 class SessionObject(object):
