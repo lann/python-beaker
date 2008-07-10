@@ -24,7 +24,7 @@ except InvalidCacheBackendError:
 
 try:
     import beaker.ext.sqla as sqla
-    clsmap['ext:sqla'] = sqla.SQLAlchemyNamespaceManager
+    clsmap['ext:sqla'] = sqla.SqlaNamespaceManager
 except InvalidCacheBackendError:
     pass
 
@@ -36,7 +36,6 @@ except (InvalidCacheBackendError, SyntaxError):
 
 class Cache(object):
     """Front-end to the containment API implementing a data cache."""
-    
     def __init__(self, namespace, **kwargs):
         self.namespace = namespace
         self.context = container.ContainerContext()

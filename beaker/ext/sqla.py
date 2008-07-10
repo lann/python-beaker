@@ -14,7 +14,7 @@ except ImportError:
 
 log = logging.getLogger(__name__)
 
-class SQLAlchemyNamespaceManager(NamespaceManager):
+class SqlaNamespaceManager(NamespaceManager):
     binds = SyncDict()
     tables = SyncDict()
 
@@ -113,8 +113,8 @@ class SQLAlchemyNamespaceManager(NamespaceManager):
         return self.hash.keys()
 
 
-class SQLAlchemyContainer(Container):
-    namespace_manager = SQLAlchemyNamespaceManager
+class SqlaContainer(Container):
+    namespace_manager = SqlaNamespaceManager
 
 def make_cache_table(metadata, table_name='beaker_cache'):
     """Return a ``Table`` object suitable for storing cached values for the
