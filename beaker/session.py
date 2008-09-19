@@ -139,11 +139,12 @@ class Session(dict):
         an expired cookie out"""
         if self.use_cookies:
             self._delete_cookie()
-        self.namespace.acquire_write_lock()
-        try:
-            self.namespace.remove()
-        finally:
-            self.namespace.release_write_lock()
+        if hasattr(self, 'namespace'):
+            self.namespace.acquire_write_lock()
+            try:
+                self.namespace.remove()
+            finally:
+                self.namespace.release_write_lock()
 
     def _delete_cookie(self):
         self.request['set_cookie'] = True
@@ -161,12 +162,13 @@ class Session(dict):
 
     def invalidate(self):
         "invalidates this session, creates a new session id, returns to the is_new state"
-        namespace = self.namespace
-        namespace.acquire_write_lock()
-        try:
-            namespace.remove()
-        finally:
-            namespace.release_write_lock()
+        if hasattr(self, 'namespace'):
+            namespace = self.namespace
+            namespace.acquire_write_lock()
+            try:
+                namespace.remove()
+            finally:
+                namespace.release_write_lock()
             
         self.was_invalidated = True
         self._create_id()
