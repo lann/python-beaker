@@ -79,7 +79,7 @@ class Session(dict):
         self.secure = secure
         self.id = id
         self.accessed_dict = {}
-            
+        
         if self.use_cookies:
             cookieheader = request.get('cookie', '')
             if secret:
@@ -96,6 +96,7 @@ class Session(dict):
         self.is_new = self.id is None
         if self.is_new:
             self._create_id()
+            self['_accessed_time'] = self['_creation_time'] = time.time()
         else:
             try:
                 self.load()
@@ -176,6 +177,7 @@ class Session(dict):
         self.request['set_cookie'] = True
         
         self.namespace.acquire_read_lock()
+        timed_out = False
         try:
             self.clear()
             try:
@@ -196,19 +198,26 @@ class Session(dict):
                 }
                 self.is_new = True
             
-            if self.timeout is not None and now - session_data['_accessed_time'] > self.timeout:
-                self.invalidate()
-                self.last_accessed = session['_accessed_time']
+            if self.timeout is not None and \
+               now - session_data['_accessed_time'] > self.timeout:
+                timed_out= True
             else:
+                # Properly set the last_accessed time, which is different
+                # than the *currently* _accessed_time
                 if self.is_new:
                     self.last_accessed = None
                 else:
                     self.last_accessed = session['_accessed_time']
+                
+                # Update the current _accessed_time
                 session_data['_accessed_time'] = now
                 self.update(session_data)
                 self.accessed_dict = session_data.copy()
         finally:
             self.namespace.release_read_lock()
+        if timed_out:
+            self.invalidate()
+            self.last_accessed = session['_accessed_time']
     
     def save(self, accessed_only=False):
         """Saves the data for this session to persistent storage
@@ -387,6 +396,8 @@ class CookieSession(Session):
     
     def save(self, accessed_only=False):
         """Saves the data for this session to persistent storage"""
+        if accessed_only and self.is_new:
+            return
         if accessed_only:
             self.clear()
             self.update(self.accessed_dict)

@@ -105,7 +105,6 @@ class OpenResourceNamespaceManager(NamespaceManager):
     closing of a resource which is possibly mutexed.
     
     """
-
     def __init__(self, namespace):
         NamespaceManager.__init__(self, namespace)
         self.access_lock = self.get_access_lock()
@@ -321,7 +320,7 @@ class Value(object):
         try:
             self.storedtime = time.time()
             debug("set_value stored time %r expire time %r", self.storedtime, self.expire_argument)
-            self.namespace.set_value(self.key, (self.storedtime, self.expire_argument, value), expiretime=self.expire_argument)
+            self.namespace.set_value(self.key, (self.storedtime, self.expire_argument, value))
         finally:
             self.namespace.release_write_lock()
 
